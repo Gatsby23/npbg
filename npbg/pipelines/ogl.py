@@ -59,12 +59,18 @@ def backward_compat(args):
     return args
 
 
+# 这里才是真正的训练Pipeline.
 class TexturePipeline(Pipeline):
     def export_args(self, parser):
+        # descriptor size
         parser.add_argument('--descriptor_size', type=int, default=8)
+        # texture大小
         parser.add_argument('--texture_size', type=int)
+        # 训练的save_point
         parser.add_argument('--texture_ckpt', type=Path)
+        # 训练的lr
         parser.add('--texture_lr', type=float, default=1e-1)
+        # 这里是激活函数吗？
         parser.add('--texture_activation', type=str, default='none')
         parser.add('--n_points', type=int, default=0, help='this is for inference')
 
@@ -111,6 +117,7 @@ class TexturePipeline(Pipeline):
 
         self.net = net
         self.textures = textures
+        # 这里才是module
         self.model = NetAndTexture(net, textures, ss)
 
         self.args = args

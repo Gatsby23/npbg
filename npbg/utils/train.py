@@ -144,7 +144,7 @@ def image_grid(*args, sz = 256):
     
     return x
 
-
+# get_module这里入口.
 def get_module(path):
     import pydoc
 

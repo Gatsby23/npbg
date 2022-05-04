@@ -24,7 +24,10 @@ import torch.nn.functional as F
 from npbg.utils.perform import TicToc, AccumDict, Tee
 from npbg.utils.arguments import MyArgumentParser, eval_args
 from npbg.models.compose import ModelAndLoss
+# Get Module是用来得到训练的Piepline
+# 是在utils中来构建训练东西
 from npbg.utils.train import to_device, image_grid, to_numpy, get_module, freeze, load_model_checkpoint, unwrap_model
+# 
 from npbg.pipelines import save_pipeline
 
 
@@ -238,14 +241,18 @@ def run_epoch(pipeline, phase, epoch, args, iter_cb=None):
 
 def run_train(epoch, pipeline, args, iter_cb):
 
+    # 这里是对模型进行evaluation吧？
     if args.eval_in_train or (args.eval_in_train_epoch >= 0 and epoch >= args.eval_in_train_epoch):
         print('EVAL MODE IN TRAIN')
         pipeline.model.eval()
         if hasattr(pipeline.model, 'ray_block') and pipeline.model.ray_block is not None:
+            # 这里没有看出具体在做啥
             pipeline.model.ray_block.train()
     else:
+        # 这里是在这里训练
         pipeline.model.train()
 
+    # 这里with是做什么？
     with torch.set_grad_enabled(True):
         return run_epoch(pipeline, 'train', epoch, args, iter_cb=iter_cb)
 
@@ -351,6 +358,7 @@ def parse_image_size(string):
 
 
 def parse_args(parser):
+    #_临时变量，不重要，只是暂时保存下
     args, _ = parser.parse_known_args()
     assert args.pipeline, 'set pipeline module'
     pipeline = get_module(args.pipeline)()
@@ -390,6 +398,7 @@ def print_args(args, default_args):
 
 
 def check_pipeline_attributes(pipeline, attributes):
+    # 
     for attr in attributes:
         if not hasattr(pipeline, attr):
             raise AttributeError(f'pipeline missing attribute "{attr}"')
@@ -434,6 +443,8 @@ if __name__ == '__main__':
     parser.add('--exclude_datasets', type=str, nargs='+')
     parser.add('--config', type=Path)
     parser.add('--use_mask', action='store_bool')
+    #  --pipeline npbg.pipelines.ogl.TexturePipeline
+    # 在运行时会有这样一句来确保用的是TexturePipeline来训练
     parser.add('--pipeline', type=str, help='path to pipeline module')
     parser.add('--inference', action='store_bool', default=False)
     parser.add('--ignore_changed_args', type=str, nargs='+', default=['ignore_changed_args', 'save_dir', 'dataloader_workers', 'epochs', 'max_ds', 'batch_size_val'])
@@ -473,15 +484,21 @@ if __name__ == '__main__':
 
     args = eval_args(args)
 
+    # Get Module来生成对应的训练，通过参数配置来生成pipeline.
+    # 这里主要得到一个pydoc->pydoc是用来生成python文档的，但这里怎么能生成对应的神经网络呢？
+    # 在流程上看起来，这里应该是TextureNet，对应的是UNet。
     pipeline = get_module(args.pipeline)()
+    # 
     pipeline.create(args)
 
+    # 需要的特性
     required_attributes = ['model', 'ds_train', 'ds_val', 'optimizer', 'criterion']
     check_pipeline_attributes(pipeline, required_attributes)
 
-    # lr_scheduler = [torch.optim.lr_scheduler.ReduceLROnPlateau(o, patience=3, factor=0.5, verbose=True) for o in pipeline.optimizer]
+    #这里感觉是学习率的构建
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(pipeline.optimizer, patience=3, factor=0.5, verbose=True)
 
+    # 这里是加载之前创建的ckpt
     if args.net_ckpt:
         print(f'LOAD NET CHECKPOINT {args.net_ckpt}')
         load_model_checkpoint(args.net_ckpt, pipeline.get_net())
@@ -492,10 +509,12 @@ if __name__ == '__main__':
             load_model_checkpoint(args.ray_block_ckpt, pipeline.model.ray_block)
     # torch.backends.cudnn.enabled = False 
 
+    # 依据参数判断这里是不是判断将网络删除
     if args.freeze_net:
         print('FREEZE NET')
         freeze(pipeline.get_net(), True)
 
+    # 如果只是evaluation，就只估计loss
     if args.eval:
         loss = run_eval(0, pipeline, args, iter_cb)
         print('VAL LOSS', loss)
@@ -511,6 +530,7 @@ if __name__ == '__main__':
 
             print('> TRAIN')
 
+            # 这里是训练
             train_loss = run_train(epoch, pipeline, args, iter_cb)
             
             print('TRAIN LOSS', train_loss)

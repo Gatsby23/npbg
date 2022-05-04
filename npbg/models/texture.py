@@ -10,7 +10,7 @@ class Texture(nn.Module):
     def reg_loss(self):
         return 0.
 
-
+# 这里不知道定义是干啥的
 class PointTexture(Texture):
     def __init__(self, num_channels, size, activation='none', checkpoint=None, init_method='zeros', reg_weight=0.):
         super().__init__()
@@ -20,6 +20,8 @@ class PointTexture(Texture):
         shape = 1, num_channels, size
 
         if checkpoint:
+            # 这里感觉加载进来的是nn.module
+            # 直接当成nn.module来理解就行
             self.texture_ = torch.load(checkpoint, map_location='cpu')['texture'].texture_
         else:
             if init_method == 'rand':
@@ -62,6 +64,7 @@ class PointTexture(Texture):
         sample = sample.contiguous().view(sample.shape[0], sh[0], sh[1], sh[2]) # CxBxHxW
         sample = sample.permute(1, 0, 2, 3) # BxCxHxW
 
+        # 这里得找下默认的激活函数是什么，不过应该不重要
         if self.activation == 'sigmoid':
             return torch.sigmoid(sample)
         elif self.activation == 'tanh':

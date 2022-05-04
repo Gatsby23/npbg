@@ -103,6 +103,7 @@ class GaussianLayer(nn.Module):
         return GaussianLayer._instance
 
 
+# 这里感觉奇怪的是没有对MultiscaleRender是怎么做的
 class NetAndTexture(nn.Module):
     def __init__(self, net, textures, supersampling=1, temporal_average=False):
         super().__init__()

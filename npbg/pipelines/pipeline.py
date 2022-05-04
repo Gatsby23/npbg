@@ -24,6 +24,7 @@ class Pipeline:
         # called after running train/val
         pass
 
+    # 生成网络（但是这里没有生成），不知道具体是怎么生成的.
     def get_net(self):
         raise NotImplementedError()
 
